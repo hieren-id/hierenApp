@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:fl_chart/fl_chart.dart'; // Pastikan sudah 'flutter pub add fl_chart'
+import 'package:fl_chart/fl_chart.dart';
 
 class ReportPage extends StatefulWidget {
   const ReportPage({super.key});
@@ -9,55 +9,35 @@ class ReportPage extends StatefulWidget {
 }
 
 class _ReportPageState extends State<ReportPage> {
-  bool isMainElectricity = true; // Untuk state switch di pojok kanan atas
+  bool isMainElectricity = true;
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F7FA), // Warna background abu muda
+      backgroundColor: const Color(0xFFF5F7FA),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(20.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // 1. HEADER (Judul & Switch)
               _buildHeader(),
               const SizedBox(height: 20),
 
-              // 2. KARTU UTAMA (Solar Power Usage)
               _buildSolarUsageCard(),
               const SizedBox(height: 20),
 
-              // 3. GRID STATISTIK (4 Kartu Kecil)
               _buildStatsGrid(),
               const SizedBox(height: 20),
 
-              // 4. GRAFIK (Chart)
               _buildGraphCard(),
-              const SizedBox(height: 80), // Spasi bawah agar tidak tertutup nav bar
+              const SizedBox(height: 80),
             ],
           ),
         ),
       ),
-      
-      // 5. BOTTOM NAVIGATION BAR
-      bottomNavigationBar: BottomNavigationBar(
-        type: BottomNavigationBarType.fixed,
-        selectedItemColor: Colors.green,
-        unselectedItemColor: Colors.grey,
-        showUnselectedLabels: true,
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home_outlined), label: 'Home'),
-          BottomNavigationBarItem(icon: Icon(Icons.bar_chart), label: 'Statistics'),
-          BottomNavigationBarItem(icon: Icon(Icons.notifications_outlined), label: 'Notification'),
-          BottomNavigationBarItem(icon: Icon(Icons.settings_outlined), label: 'Settings'),
-        ],
-      ),
     );
   }
-
-  // --- WIDGET BUILDERS ---
 
   Widget _buildHeader() {
     return Row(
@@ -141,7 +121,7 @@ class _ReportPageState extends State<ReportPage> {
           ClipRRect(
             borderRadius: BorderRadius.circular(10),
             child: const LinearProgressIndicator(
-              value: 0.4, // 40%
+              value: 0.4,
               minHeight: 8,
               backgroundColor: Color(0xFFEEEEEE),
               color: Colors.green,
@@ -159,7 +139,7 @@ class _ReportPageState extends State<ReportPage> {
       physics: const NeverScrollableScrollPhysics(),
       crossAxisSpacing: 15,
       mainAxisSpacing: 15,
-      childAspectRatio: 1.1, // Mengatur rasio lebar:tinggi kartu
+      childAspectRatio: 1.1,
       children: [
         _statCard(Icons.lightbulb_outline, 'Total energy', '36.2', 'Kwh'),
         _statCard(Icons.bolt, 'Consumed', '28.2', 'Kwh'),
@@ -252,7 +232,7 @@ class _ReportPageState extends State<ReportPage> {
                     return FlLine(
                       color: Colors.grey.withOpacity(0.2),
                       strokeWidth: 1,
-                      dashArray: [5, 5], // Garis putus-putus
+                      dashArray: [5, 5],
                     );
                   },
                 ),
@@ -264,7 +244,7 @@ class _ReportPageState extends State<ReportPage> {
                       showTitles: true,
                       reservedSize: 40,
                       getTitlesWidget: (value, meta) {
-                        if (value == 0 || value == 200) return const SizedBox.shrink(); // Sembunyikan 0 dan max
+                        if (value == 0 || value == 200) return const SizedBox.shrink();
                         return Text('${value.toInt()}KWh', style: const TextStyle(color: Colors.grey, fontSize: 10));
                       },
                     ),
@@ -308,7 +288,7 @@ class _ReportPageState extends State<ReportPage> {
                       FlSpot(9.5, 70),
                       FlSpot(10, 120),
                     ],
-                    isCurved: true, // Membuat garis melengkung halus
+                    isCurved: true,
                     color: Colors.green,
                     barWidth: 2,
                     isStrokeCapRound: true,
