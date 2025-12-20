@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'pages/home_page.dart';
 import 'pages/report_page.dart';
+import 'pages/statistics_page.dart';
 
 class MainNavigation extends StatefulWidget {
   const MainNavigation({super.key});
@@ -14,7 +15,7 @@ class _MainNavigationState extends State<MainNavigation> {
 
   final List<Widget> _pages = [
     const HomePage(userName: 'romi'),
-    const Placeholder(),
+    const StatisticsPage(),
     const ReportPage(),
     const Placeholder(),
   ];

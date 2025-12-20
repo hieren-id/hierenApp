@@ -36,6 +36,8 @@ dependencies:
   cupertino_icons: ^1.0.8
   fl_chart: ^1.1.1
   google_fonts: ^6.3.2
+  http: ^1.2.2
+  mqtt_client: ^10.5.0
 
 dev_dependencies:
   flutter_test:
