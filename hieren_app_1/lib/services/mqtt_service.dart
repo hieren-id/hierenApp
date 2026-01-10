@@ -8,20 +8,23 @@ import 'api_service.dart';
 class MqttService {
   // MQTT Broker Configuration
   // Ganti dengan IP broker MQTT Anda (EMQX, Mosquitto, dll)
-  static const String broker = 'test.mosquitto.org'; // Public broker (lebih stabil untuk mobile)
-  
+  static const String broker =
+      'test.mosquitto.org'; // Public broker (lebih stabil untuk mobile)
+
   static const int port = 1883;
-  
+
   // Topic untuk subscribe data ampere
   // PRODUCTION: Buat topic unique untuk keamanan
-  static const String ampereTopic = 'hieren/sensor/ampere/user_${12345}'; // Ganti 12345 dengan ID unik Anda
-  
+  static const String ampereTopic =
+      'hieren/sensor/user_${12345}'; // Ganti 12345 dengan ID unik Anda
+
   MqttServerClient? client;
-  final StreamController<SensorAmpere> _ampereController = StreamController<SensorAmpere>.broadcast();
-  
+  final StreamController<SensorAmpere> _ampereController =
+      StreamController<SensorAmpere>.broadcast();
+
   // Stream untuk listen data ampere realtime
   Stream<SensorAmpere> get ampereStream => _ampereController.stream;
-  
+
   bool _isConnected = false;
   bool get isConnected => _isConnected;
 
@@ -40,7 +43,7 @@ class MqttService {
         .withClientIdentifier(clientId)
         .startClean()
         .withWillQos(MqttQos.atLeastOnce);
-    
+
     client!.connectionMessage = connMessage;
 
     try {
@@ -80,7 +83,9 @@ class MqttService {
 
     client!.updates!.listen((List<MqttReceivedMessage<MqttMessage>> messages) {
       final recMessage = messages[0].payload as MqttPublishMessage;
-      final payload = MqttPublishPayload.bytesToStringAsString(recMessage.payload.message);
+      final payload = MqttPublishPayload.bytesToStringAsString(
+        recMessage.payload.message,
+      );
 
       print('📩 Received from ${messages[0].topic}: $payload');
       _handleAmpereData(payload);
@@ -93,8 +98,8 @@ class MqttService {
       // Parse JSON: {"ampere": 2.5, "voltage": 220.0}
       final data = json.decode(payload);
       final double ampere = double.parse(data['ampere'].toString());
-      final double? voltage = data['voltage'] != null 
-          ? double.parse(data['voltage'].toString()) 
+      final double? voltage = data['voltage'] != null
+          ? double.parse(data['voltage'].toString())
           : null;
 
       // Buat object SensorAmpere untuk stream
@@ -110,7 +115,6 @@ class MqttService {
 
       // Simpan ke database
       _saveToDatabase(ampere, voltage);
-      
     } catch (e) {
       print('❌ Error parsing ampere data: $e');
     }
@@ -119,7 +123,10 @@ class MqttService {
   // Simpan data ke database via API
   Future<void> _saveToDatabase(double ampere, double? voltage) async {
     try {
-      final result = await ApiService.saveSensorAmpere(ampere, voltage: voltage);
+      final result = await ApiService.saveSensorAmpere(
+        ampere,
+        voltage: voltage,
+      );
       if (result['success'] == true) {
         print('✅ Ampere data saved to DB: ${ampere}A');
       } else {
@@ -145,7 +152,7 @@ class MqttService {
 
     final builder = MqttClientPayloadBuilder();
     builder.addString(payload);
-    
+
     client!.publishMessage(ampereTopic, MqttQos.atLeastOnce, builder.payload!);
     print('📤 Published to $ampereTopic: $payload');
   }

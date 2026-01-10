@@ -13,7 +13,7 @@ from datetime import datetime
 # Configuration
 BROKER = "test.mosquitto.org"
 PORT = 1883
-TOPIC = "hieren/sensor/ampere/user_12345"
+TOPIC = "hieren/sensor/user_12345"
 INTERVAL = 1  # seconds
 
 def on_connect(client, userdata, flags, rc, properties=None):

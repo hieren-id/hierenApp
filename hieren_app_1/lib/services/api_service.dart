@@ -8,19 +8,18 @@ class ApiService {
   // IP WiFi komputer - update setiap kali WiFi berubah (cek: ipconfig)
   // HP & PC harus dalam WiFi yang sama: 192.168.1.x
   // Pastikan XAMPP Apache running & firewall allow port 80
-  static const String baseUrl = 'http://192.168.1.11/hieren_api';
-
+  static const String baseUrl = 'http://192.168.1.4/hieren_api';
 
   static Future<List<Device>> getDevices() async {
     try {
       print('📡 GET: $baseUrl/read_device.php');
-      final response = await http.get(
-        Uri.parse('$baseUrl/read_device.php'),
-      ).timeout(const Duration(seconds: 10));
+      final response = await http
+          .get(Uri.parse('$baseUrl/read_device.php'))
+          .timeout(const Duration(seconds: 10));
 
       if (response.statusCode == 200) {
         final jsonData = json.decode(response.body);
-        
+
         if (jsonData['success'] == true) {
           List<dynamic> devicesJson = jsonData['data'];
           return devicesJson.map((json) => Device.fromJson(json)).toList();
@@ -87,9 +86,7 @@ class ApiService {
     try {
       final response = await http.post(
         Uri.parse('$baseUrl/delete_device.php'),
-        body: {
-          'id': id.toString(),
-        },
+        body: {'id': id.toString()},
       );
 
       if (response.statusCode == 200) {
@@ -107,13 +104,11 @@ class ApiService {
   // Get latest energy data
   static Future<EnergyData> getEnergyData() async {
     try {
-      final response = await http.get(
-        Uri.parse('$baseUrl/read_energy.php'),
-      );
+      final response = await http.get(Uri.parse('$baseUrl/read_energy.php'));
 
       if (response.statusCode == 200) {
         final jsonData = json.decode(response.body);
-        
+
         if (jsonData['success'] == true) {
           return EnergyData.fromJson(jsonData['data']);
         } else {
@@ -128,7 +123,9 @@ class ApiService {
   }
 
   // Create new energy data
-  static Future<Map<String, dynamic>> createEnergyData(EnergyData energyData) async {
+  static Future<Map<String, dynamic>> createEnergyData(
+    EnergyData energyData,
+  ) async {
     try {
       final response = await http.post(
         Uri.parse('$baseUrl/create_energy.php'),
@@ -162,7 +159,7 @@ class ApiService {
 
       if (response.statusCode == 200) {
         final jsonData = json.decode(response.body);
-        
+
         if (jsonData['success'] == true) {
           return SensorAmpere.fromJson(jsonData['data']);
         } else {
@@ -177,7 +174,10 @@ class ApiService {
   }
 
   // Save sensor ampere data
-  static Future<Map<String, dynamic>> saveSensorAmpere(double ampere, {double? voltage}) async {
+  static Future<Map<String, dynamic>> saveSensorAmpere(
+    double ampere, {
+    double? voltage,
+  }) async {
     try {
       final response = await http.post(
         Uri.parse('$baseUrl/save_sensor_ampere.php'),
@@ -198,7 +198,9 @@ class ApiService {
   }
 
   // Get historical sensor ampere data for graph
-  static Future<List<SensorAmpere>> getSensorAmpereHistory({int limit = 20}) async {
+  static Future<List<SensorAmpere>> getSensorAmpereHistory({
+    int limit = 20,
+  }) async {
     try {
       final response = await http.get(
         Uri.parse('$baseUrl/read_sensor_ampere_history.php?limit=$limit'),
@@ -206,12 +208,14 @@ class ApiService {
 
       if (response.statusCode == 200) {
         final jsonData = json.decode(response.body);
-        
+
         if (jsonData['success'] == true) {
           List<dynamic> dataList = jsonData['data'];
           return dataList.map((json) => SensorAmpere.fromJson(json)).toList();
         } else {
-          throw Exception(jsonData['message'] ?? 'Failed to load sensor history');
+          throw Exception(
+            jsonData['message'] ?? 'Failed to load sensor history',
+          );
         }
       } else {
         throw Exception('Server error: ${response.statusCode}');
