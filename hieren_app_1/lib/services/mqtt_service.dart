@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:mqtt_client/mqtt_client.dart';
 import 'package:mqtt_client/mqtt_server_client.dart';
 import '../models/sensor_ampere_model.dart';
+import '../models/sensor_reading_model.dart';
 import 'api_service.dart';
 
 class MqttService {
@@ -21,9 +22,13 @@ class MqttService {
   MqttServerClient? client;
   final StreamController<SensorAmpere> _ampereController =
       StreamController<SensorAmpere>.broadcast();
+  final StreamController<SensorReading> _sensorController =
+      StreamController<SensorReading>.broadcast();
 
   // Stream untuk listen data ampere realtime
   Stream<SensorAmpere> get ampereStream => _ampereController.stream;
+  // Stream generic untuk semua sensor
+  Stream<SensorReading> get sensorStream => _sensorController.stream;
 
   bool _isConnected = false;
   bool get isConnected => _isConnected;
@@ -89,6 +94,25 @@ class MqttService {
 
       print('📩 Received from ${messages[0].topic}: $payload');
       _handleAmpereData(payload);
+    });
+  }
+
+  // Subscribe ke device tertentu (multi-device support)
+  void subscribeDevice(String deviceId) {
+    if (client == null || !_isConnected) return;
+
+    final topicPattern = 'hieren/$deviceId/#';
+    print('📡 Subscribing to device topic: $topicPattern');
+    client!.subscribe(topicPattern, MqttQos.atLeastOnce);
+
+    client!.updates!.listen((List<MqttReceivedMessage<MqttMessage>> messages) {
+      final message = messages.first;
+      final recMessage = message.payload as MqttPublishMessage;
+      final payload = MqttPublishPayload.bytesToStringAsString(
+        recMessage.payload.message,
+      );
+
+      _handleGenericSensor(message.topic, payload);
     });
   }
 
@@ -168,6 +192,68 @@ class MqttService {
   // Cleanup
   void dispose() {
     _ampereController.close();
+    _sensorController.close();
     disconnect();
+  }
+
+  // Handle generic sensor payloads
+  void _handleGenericSensor(String topic, String payload) {
+    try {
+      final parts = topic.split('/');
+      // Expected: hieren/{deviceId}/{sensorType}
+      if (parts.length < 3) return;
+      final deviceId = parts[1];
+      final sensorType = parts[2];
+
+      Map<String, dynamic> data;
+      if (payload.contains('{')) {
+        data = json.decode(payload) as Map<String, dynamic>;
+      } else {
+        // Support slash-separated "v/a/p" format
+        final segments = payload.split('/');
+        data = {};
+        if (segments.isNotEmpty) data['voltage'] = double.tryParse(segments[0]);
+        if (segments.length > 1) data['current'] = double.tryParse(segments[1]);
+        if (segments.length > 2) data['power'] = double.tryParse(segments[2]);
+      }
+
+      final reading = SensorReading(
+        id: 0,
+        deviceId: deviceId,
+        sensorType: sensorType,
+        voltage: _asDouble(data['voltage']),
+        current: _asDouble(data['current']),
+        power: _asDouble(data['power']),
+        temperature: _asDouble(data['temperature']),
+        angle: data['angle'] != null
+            ? int.tryParse(data['angle'].toString())
+            : null,
+        lightIntensity: _asDouble(data['light_intensity'] ?? data['ldr']),
+        createdAt: DateTime.now().toIso8601String(),
+      );
+
+      _sensorController.add(reading);
+
+      // If it's pzem* treat as ampere for legacy graph and save to DB
+      if (reading.isPzem) {
+        final amp = reading.current ?? 0.0;
+        _ampereController.add(
+          SensorAmpere(
+            id: 0,
+            ampere: amp,
+            voltage: reading.voltage,
+            createdAt: reading.createdAt,
+          ),
+        );
+        _saveToDatabase(amp, reading.voltage);
+      }
+    } catch (e) {
+      print('❌ Error handling sensor payload: $e');
+    }
+  }
+
+  double? _asDouble(dynamic val) {
+    if (val == null) return null;
+    return double.tryParse(val.toString());
   }
 }

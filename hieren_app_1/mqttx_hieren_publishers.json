@@ -1,0 +1,141 @@
+{
+  "version": 2,
+  "connections": [
+    {
+      "id": "hieren_multi_simulator",
+      "name": "Hieren Multi-Device Simulator",
+      "clientID": "hieren_simulator",
+      "host": "test.mosquitto.org",
+      "port": 1883,
+      "protocol": "mqtt",
+      "username": "",
+      "password": "",
+      "keepalive": 60,
+      "clean": true,
+      "autoReconnect": true,
+      "reconnectPeriod": 4000,
+      "ssl": false,
+      "publishHistory": [
+        {
+          "id": "1",
+          "topic": "hieren/SP001/pzem",
+          "payload": "{\"voltage\": 12.5, \"current\": 2.3, \"power\": 28.75}",
+          "qos": 1,
+          "retain": false
+        },
+        {
+          "id": "2",
+          "topic": "hieren/SP001/piezo",
+          "payload": "{\"voltage\": 5.2, \"current\": 1.1, \"power\": 5.72}",
+          "qos": 1,
+          "retain": false
+        },
+        {
+          "id": "3",
+          "topic": "hieren/SP001/teg",
+          "payload": "{\"voltage\": 3.8, \"current\": 0.8, \"power\": 3.04}",
+          "qos": 1,
+          "retain": false
+        },
+        {
+          "id": "4",
+          "topic": "hieren/SP001/encoder",
+          "payload": "{\"angle\": 45}",
+          "qos": 1,
+          "retain": false
+        },
+        {
+          "id": "5",
+          "topic": "hieren/SP001/ldr1",
+          "payload": "{\"light_intensity\": 850.5}",
+          "qos": 1,
+          "retain": false
+        },
+        {
+          "id": "6",
+          "topic": "hieren/SP001/ldr2",
+          "payload": "{\"light_intensity\": 920.3}",
+          "qos": 1,
+          "retain": false
+        },
+        {
+          "id": "7",
+          "topic": "hieren/SP002/pzem",
+          "payload": "{\"voltage\": 12.0, \"current\": 1.8, \"power\": 21.6}",
+          "qos": 1,
+          "retain": false
+        },
+        {
+          "id": "8",
+          "topic": "hieren/SP002/piezo",
+          "payload": "{\"voltage\": 5.0, \"current\": 1.0, \"power\": 5.0}",
+          "qos": 1,
+          "retain": false
+        },
+        {
+          "id": "9",
+          "topic": "hieren/SP002/teg",
+          "payload": "{\"voltage\": 3.5, \"current\": 0.7, \"power\": 2.45}",
+          "qos": 1,
+          "retain": false
+        },
+        {
+          "id": "10",
+          "topic": "hieren/SP002/encoder",
+          "payload": "{\"angle\": 35}",
+          "qos": 1,
+          "retain": false
+        },
+        {
+          "id": "11",
+          "topic": "hieren/SP002/ldr1",
+          "payload": "{\"light_intensity\": 780.0}",
+          "qos": 1,
+          "retain": false
+        },
+        {
+          "id": "12",
+          "topic": "hieren/SB001/pzem_dc",
+          "payload": "{\"voltage\": 48.0, \"current\": 10.5, \"power\": 504.0}",
+          "qos": 1,
+          "retain": false
+        },
+        {
+          "id": "13",
+          "topic": "hieren/SB001/pzem_ac",
+          "payload": "{\"voltage\": 220.0, \"current\": 3.2, \"power\": 704.0}",
+          "qos": 1,
+          "retain": false
+        },
+        {
+          "id": "14",
+          "topic": "hieren/SB001/dht22",
+          "payload": "{\"temperature\": 28.5}",
+          "qos": 1,
+          "retain": false
+        },
+        {
+          "id": "15",
+          "topic": "hieren/WT001/pzem1",
+          "payload": "{\"voltage\": 220.0, \"current\": 5.2, \"power\": 1144.0}",
+          "qos": 1,
+          "retain": false
+        },
+        {
+          "id": "16",
+          "topic": "hieren/WT001/pzem2",
+          "payload": "{\"voltage\": 220.0, \"current\": 4.8, \"power\": 1056.0}",
+          "qos": 1,
+          "retain": false
+        },
+        {
+          "id": "17",
+          "topic": "hieren/WT001/pzem3",
+          "payload": "{\"voltage\": 220.0, \"current\": 5.0, \"power\": 1100.0}",
+          "qos": 1,
+          "retain": false
+        }
+      ]
+    }
+  ]
+}

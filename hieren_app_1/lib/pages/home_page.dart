@@ -1,15 +1,37 @@
 import 'package:flutter/material.dart';
+import '../services/auth_service.dart';
+import '../models/user_model.dart';
 
 class HomePage extends StatefulWidget {
   final String userName;
-  
-  const HomePage({super.key, this.userName = 'Nadzare Kafah A'});
+
+  const HomePage({super.key, this.userName = ''});
 
   @override
   State<HomePage> createState() => _HomePageState();
 }
 
 class _HomePageState extends State<HomePage> {
+  User? _currentUser;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadCurrentUser();
+  }
+
+  Future<void> _loadCurrentUser() async {
+    try {
+      final user = await AuthService.getCurrentUser();
+      if (!mounted) return;
+      setState(() {
+        _currentUser = user;
+      });
+    } catch (_) {
+      // silently ignore and keep default UI
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -42,24 +64,28 @@ class _HomePageState extends State<HomePage> {
             shape: BoxShape.circle,
             border: Border.all(color: Colors.green, width: 2),
             image: const DecorationImage(
-              image: NetworkImage('https://uploads.dailydot.com/2025/02/jarvis_memes_usable.jpg?auto=compress&fm=pjpg&w=2000&h=1000'),
+              image: NetworkImage(
+                'https://uploads.dailydot.com/2025/02/jarvis_memes_usable.jpg?auto=compress&fm=pjpg&w=2000&h=1000',
+              ),
               fit: BoxFit.cover,
             ),
           ),
         ),
         const SizedBox(width: 15),
-        
+
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
+              const Text(
                 'Hallo,',
                 style: TextStyle(color: Colors.grey, fontSize: 14),
               ),
               Text(
-                widget.userName,
-                style: TextStyle(
+                (widget.userName.isNotEmpty
+                    ? widget.userName
+                    : (_currentUser?.username ?? 'User')),
+                style: const TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
                   color: Colors.green,
@@ -68,7 +94,7 @@ class _HomePageState extends State<HomePage> {
             ],
           ),
         ),
-        
+
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
           decoration: BoxDecoration(
@@ -76,9 +102,7 @@ class _HomePageState extends State<HomePage> {
             borderRadius: BorderRadius.circular(20),
           ),
           child: Row(
-            children: [
-              Icon(Icons.menu, color: Colors.green, size: 20),
-            ],
+            children: [Icon(Icons.menu, color: Colors.green, size: 20)],
           ),
         ),
         const SizedBox(width: 10),
@@ -148,7 +172,7 @@ class _HomePageState extends State<HomePage> {
             ),
           ),
           const SizedBox(height: 15),
-          
+
           Expanded(
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
@@ -166,7 +190,7 @@ class _HomePageState extends State<HomePage> {
             ),
           ),
           const SizedBox(height: 10),
-          
+
           Container(
             padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
             decoration: BoxDecoration(
@@ -237,7 +261,7 @@ class _HomePageState extends State<HomePage> {
             ),
           ),
           const SizedBox(height: 10),
-          
+
           Expanded(
             child: Center(
               child: Stack(
@@ -266,10 +290,7 @@ class _HomePageState extends State<HomePage> {
                       ),
                       Text(
                         'Kwh',
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: Colors.grey,
-                        ),
+                        style: TextStyle(fontSize: 14, color: Colors.grey),
                       ),
                     ],
                   ),
@@ -365,7 +386,7 @@ class _HomePageState extends State<HomePage> {
             ),
           ),
           const SizedBox(height: 10),
-          
+
           Expanded(
             child: Stack(
               children: [
@@ -389,7 +410,7 @@ class _HomePageState extends State<HomePage> {
               ],
             ),
           ),
-          
+
           const Text(
             '100%',
             style: TextStyle(
@@ -400,10 +421,7 @@ class _HomePageState extends State<HomePage> {
           ),
           const Text(
             'Baik',
-            style: TextStyle(
-              fontSize: 12,
-              color: Colors.grey,
-            ),
+            style: TextStyle(fontSize: 12, color: Colors.grey),
           ),
         ],
       ),
@@ -447,13 +465,7 @@ class _HomePageState extends State<HomePage> {
                   color: Colors.green,
                 ),
               ),
-              Text(
-                'hours',
-                style: TextStyle(
-                  fontSize: 14,
-                  color: Colors.grey,
-                ),
-              ),
+              Text('hours', style: TextStyle(fontSize: 14, color: Colors.grey)),
             ],
           ),
         ],
@@ -479,7 +491,7 @@ class _HomePageState extends State<HomePage> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const SizedBox(height: 10),
-          
+
           Expanded(
             child: Stack(
               children: [
@@ -516,7 +528,7 @@ class _HomePageState extends State<HomePage> {
               ],
             ),
           ),
-          
+
           const Text(
             '100%',
             style: TextStyle(
@@ -527,10 +539,7 @@ class _HomePageState extends State<HomePage> {
           ),
           const Text(
             'Baik',
-            style: TextStyle(
-              fontSize: 12,
-              color: Colors.grey,
-            ),
+            style: TextStyle(fontSize: 12, color: Colors.grey),
           ),
         ],
       ),
@@ -548,7 +557,7 @@ class WavePainter extends CustomPainter {
 
     final path = Path();
     path.moveTo(0, size.height / 2);
-    
+
     path.lineTo(size.width * 0.2, size.height / 2 - 10);
     path.lineTo(size.width * 0.35, size.height / 2 + 10);
     path.lineTo(size.width * 0.5, size.height / 2);

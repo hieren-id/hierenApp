@@ -2,13 +2,17 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import '../models/device_model.dart';
+import '../models/device_model_new.dart';
 import '../models/energy_data_model.dart';
 import '../models/sensor_ampere_model.dart';
+import '../models/sensor_reading_model.dart';
 import '../services/api_service.dart';
 import '../services/mqtt_service.dart';
 
 class StatisticsPage extends StatefulWidget {
-  const StatisticsPage({super.key});
+  final DeviceModel device;
+
+  const StatisticsPage({super.key, required this.device});
 
   @override
   State<StatisticsPage> createState() => _StatisticsPageState();
@@ -17,22 +21,31 @@ class StatisticsPage extends StatefulWidget {
 class _StatisticsPageState extends State<StatisticsPage> {
   bool isElectricityOn = true;
   String selectedPeriod = 'Month';
+  late final String _sensorType;
 
+  // Old models (for backward compatibility)
   List<Device> devices = [];
   EnergyData? energyData;
   SensorAmpere? sensorAmpere;
   List<SensorAmpere> ampereHistory = [];
+
+  // New sensor readings
+  List<SensorReading> sensorReadings = [];
+  SensorReading? latestReading;
+
   bool isLoading = true;
   String? errorMessage;
 
   // MQTT realtime
   final MqttService _mqttService = MqttService();
   StreamSubscription<SensorAmpere>? _ampereSubscription;
+  StreamSubscription<SensorReading>? _sensorSubscription;
   bool _isMqttConnected = false;
 
   @override
   void initState() {
     super.initState();
+    _sensorType = _defaultSensorType();
     _loadData();
     _connectMqtt();
   }
@@ -45,12 +58,28 @@ class _StatisticsPageState extends State<StatisticsPage> {
     });
 
     if (connected) {
-      // Listen to ampere stream for realtime updates
-      _ampereSubscription = _mqttService.ampereStream.listen((ampereData) {
-        setState(() {
-          sensorAmpere = ampereData;
-        });
-        print('📊 UI Updated: ${ampereData.ampere}A');
+      // Subscribe ke device ini saja
+      _mqttService.subscribeDevice(widget.device.deviceId);
+
+      // Listen to generic sensor stream
+      _sensorSubscription = _mqttService.sensorStream.listen((reading) {
+        if (reading.deviceId != widget.device.deviceId) return;
+
+        latestReading = reading;
+
+        // Jika sensor pzem/pzem_dc/pzem_ac/pzem1.. treat as ampere graph source
+        if (reading.isPzem) {
+          final ampereData = _sensorToAmpere(reading);
+          setState(() {
+            sensorAmpere = ampereData;
+            ampereHistory.insert(0, ampereData);
+            if (ampereHistory.length > 50) {
+              ampereHistory.removeLast();
+            }
+          });
+        } else {
+          setState(() {});
+        }
       });
     }
   }
@@ -62,25 +91,32 @@ class _StatisticsPageState extends State<StatisticsPage> {
     });
 
     try {
-      print('🔄 Loading data from API...');
-      // Load devices, energy data, and sensor ampere from API
-      final devicesData = await ApiService.getDevices();
-      print('✅ Devices loaded: ${devicesData.length}');
+      print('🔄 Loading data for device ${widget.device.deviceId}...');
 
-      final energy = await ApiService.getEnergyData();
-      print('✅ Energy data loaded');
+      // Get history untuk sensor utama perangkat ini
+      final history = await ApiService.getSensorHistory(
+        deviceId: widget.device.deviceId,
+        sensorType: _sensorType,
+        limit: 50,
+      );
 
-      final ampere = await ApiService.getSensorAmpere();
-      print('✅ Sensor ampere loaded: ${ampere.ampere}A');
+      final latest = await ApiService.getLatestSensorReading(
+        deviceId: widget.device.deviceId,
+        sensorType: _sensorType,
+      );
 
-      final history = await ApiService.getSensorAmpereHistory(limit: 20);
-      print('✅ Sensor ampere history loaded: ${history.length} records');
+      final ampereList = history
+          .where((r) => r.isPzem)
+          .map(_sensorToAmpere)
+          .toList();
 
       setState(() {
-        devices = devicesData; // Will be empty list if no devices
-        energyData = energy;
-        sensorAmpere = ampere;
-        ampereHistory = history;
+        sensorReadings = history;
+        latestReading = latest;
+        sensorAmpere = latest != null && latest.isPzem
+            ? _sensorToAmpere(latest)
+            : (ampereList.isNotEmpty ? ampereList.first : null);
+        ampereHistory = ampereList;
         isLoading = false;
       });
     } catch (e) {
@@ -120,6 +156,7 @@ class _StatisticsPageState extends State<StatisticsPage> {
   @override
   void dispose() {
     _ampereSubscription?.cancel();
+    _sensorSubscription?.cancel();
     _mqttService.dispose();
     super.dispose();
   }
@@ -240,104 +277,32 @@ class _StatisticsPageState extends State<StatisticsPage> {
     }
   }
 
-  // Show add device dialog
-  void _showAddDialog() {
-    final nameController = TextEditingController();
-    final conditionController = TextEditingController();
-    final percentageController = TextEditingController(text: '0');
-    String selectedColor = 'cyan';
-
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Add New Device'),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: nameController,
-                decoration: const InputDecoration(labelText: 'Device Name'),
-              ),
-              const SizedBox(height: 10),
-              TextField(
-                controller: conditionController,
-                decoration: const InputDecoration(labelText: 'Condition'),
-              ),
-              const SizedBox(height: 10),
-              TextField(
-                controller: percentageController,
-                decoration: const InputDecoration(labelText: 'Percentage'),
-                keyboardType: TextInputType.number,
-              ),
-              const SizedBox(height: 10),
-              DropdownButtonFormField<String>(
-                initialValue: selectedColor,
-                decoration: const InputDecoration(labelText: 'Color'),
-                items: ['cyan', 'orange', 'pink', 'green', 'blue', 'red']
-                    .map(
-                      (color) =>
-                          DropdownMenuItem(value: color, child: Text(color)),
-                    )
-                    .toList(),
-                onChanged: (value) {
-                  selectedColor = value!;
-                },
-              ),
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () async {
-              final newDevice = Device(
-                id: 0,
-                name: nameController.text,
-                condition: conditionController.text,
-                percentage: int.parse(percentageController.text),
-                colorName: selectedColor,
-              );
-              Navigator.pop(context);
-              await _createDevice(newDevice);
-            },
-            child: const Text('Add'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Future<void> _createDevice(Device device) async {
-    try {
-      final result = await ApiService.createDevice(device);
-      if (result['success'] == true) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Device added successfully')),
-        );
-        _loadData();
-      } else {
-        throw Exception(result['message'] ?? 'Failed to add device');
-      }
-    } catch (e) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Error: $e')));
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF5F7FA),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _showAddDialog,
+      appBar: AppBar(
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              widget.device.name,
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            Text(
+              widget.device.deviceType.displayName,
+              style: const TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.normal,
+              ),
+            ),
+          ],
+        ),
         backgroundColor: Colors.green,
-        child: const Icon(Icons.add),
+        foregroundColor: Colors.white,
+        elevation: 0,
       ),
+      floatingActionButton: null,
       body: SafeArea(
         child: isLoading
             ? const Center(child: CircularProgressIndicator())
@@ -1297,6 +1262,29 @@ class _StatisticsPageState extends State<StatisticsPage> {
     // Add 20% padding to max value
     print('📈 Graph Y-axis max: ${max * 1.2} (data max: $max)');
     return max * 1.2;
+  }
+
+  // Default sensor type per device type
+  String _defaultSensorType() {
+    switch (widget.device.deviceType) {
+      case DeviceType.solarPanel:
+        return 'pzem';
+      case DeviceType.smartBattery:
+        return 'pzem_dc';
+      case DeviceType.windTurbine:
+        return 'pzem1';
+    }
+  }
+
+  // Convert generic SensorReading to legacy SensorAmpere for graphs
+  SensorAmpere _sensorToAmpere(SensorReading reading) {
+    final ampereValue = reading.current ?? 0.0;
+    return SensorAmpere(
+      id: reading.id,
+      ampere: ampereValue,
+      voltage: reading.voltage,
+      createdAt: reading.createdAt,
+    );
   }
 
   // Get voltage data points for the graph from history

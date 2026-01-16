@@ -1,14 +1,188 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../models/device_model.dart';
+import '../models/device_model_new.dart';
 import '../models/energy_data_model.dart';
 import '../models/sensor_ampere_model.dart';
+import '../models/sensor_reading_model.dart';
 
 class ApiService {
   // IP WiFi komputer - update setiap kali WiFi berubah (cek: ipconfig)
   // HP & PC harus dalam WiFi yang sama: 192.168.1.x
   // Pastikan XAMPP Apache running & firewall allow port 80
-  static const String baseUrl = 'http://192.168.1.4/hieren_api';
+  static const String baseUrl = 'http://192.168.1.6/hieren_api';
+
+  // ==================== AUTHENTICATION APIs ====================
+
+  // Login user
+  static Future<Map<String, dynamic>> login(
+    String username,
+    String password,
+  ) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/login.php'),
+        body: {'username': username, 'password': password},
+      );
+
+      if (response.statusCode == 200) {
+        return json.decode(response.body);
+      } else {
+        throw Exception('Server error: ${response.statusCode}');
+      }
+    } catch (e) {
+      throw Exception('Error during login: $e');
+    }
+  }
+
+  // Register new user
+  static Future<Map<String, dynamic>> register({
+    required String username,
+    required String email,
+    required String password,
+    String? fullName,
+  }) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/register.php'),
+        body: {
+          'username': username,
+          'email': email,
+          'password': password,
+          if (fullName != null) 'full_name': fullName,
+        },
+      );
+
+      if (response.statusCode == 200) {
+        return json.decode(response.body);
+      } else {
+        throw Exception('Server error: ${response.statusCode}');
+      }
+    } catch (e) {
+      throw Exception('Error during registration: $e');
+    }
+  }
+
+  // ==================== DEVICE MANAGEMENT APIs ====================
+
+  // Get all devices for logged-in user
+  static Future<List<DeviceModel>> getUserDevices(int userId) async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/get_user_devices.php?user_id=$userId'),
+      );
+
+      if (response.statusCode == 200) {
+        final jsonData = json.decode(response.body);
+
+        if (jsonData['success'] == true) {
+          List<dynamic> devicesJson = jsonData['data'];
+          return devicesJson.map((json) => DeviceModel.fromJson(json)).toList();
+        } else {
+          throw Exception(jsonData['message'] ?? 'Failed to load devices');
+        }
+      } else {
+        throw Exception('Server error: ${response.statusCode}');
+      }
+    } catch (e) {
+      throw Exception('Error fetching devices: $e');
+    }
+  }
+
+  // ==================== SENSOR READING APIs ====================
+
+  // Save sensor reading (generic untuk semua sensor)
+  static Future<Map<String, dynamic>> saveSensorReading(
+    SensorReading reading,
+  ) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/save_sensor_reading.php'),
+        body: {
+          'device_id': reading.deviceId,
+          'sensor_type': reading.sensorType,
+          if (reading.voltage != null) 'voltage': reading.voltage.toString(),
+          if (reading.current != null) 'current': reading.current.toString(),
+          if (reading.power != null) 'power': reading.power.toString(),
+          if (reading.temperature != null)
+            'temperature': reading.temperature.toString(),
+          if (reading.angle != null) 'angle': reading.angle.toString(),
+          if (reading.lightIntensity != null)
+            'light_intensity': reading.lightIntensity.toString(),
+        },
+      );
+
+      if (response.statusCode == 200) {
+        return json.decode(response.body);
+      } else {
+        throw Exception('Server error: ${response.statusCode}');
+      }
+    } catch (e) {
+      throw Exception('Error saving sensor data: $e');
+    }
+  }
+
+  // Get sensor reading history
+  static Future<List<SensorReading>> getSensorHistory({
+    required String deviceId,
+    required String sensorType,
+    int limit = 20,
+  }) async {
+    try {
+      final response = await http.get(
+        Uri.parse(
+          '$baseUrl/get_sensor_history.php?device_id=$deviceId&sensor_type=$sensorType&limit=$limit',
+        ),
+      );
+
+      if (response.statusCode == 200) {
+        final jsonData = json.decode(response.body);
+
+        if (jsonData['success'] == true) {
+          List<dynamic> dataList = jsonData['data'];
+          return dataList.map((json) => SensorReading.fromJson(json)).toList();
+        } else {
+          throw Exception(
+            jsonData['message'] ?? 'Failed to load sensor history',
+          );
+        }
+      } else {
+        throw Exception('Server error: ${response.statusCode}');
+      }
+    } catch (e) {
+      throw Exception('Error fetching sensor history: $e');
+    }
+  }
+
+  // Get latest sensor reading
+  static Future<SensorReading?> getLatestSensorReading({
+    required String deviceId,
+    required String sensorType,
+  }) async {
+    try {
+      final response = await http.get(
+        Uri.parse(
+          '$baseUrl/get_latest_sensor.php?device_id=$deviceId&sensor_type=$sensorType',
+        ),
+      );
+
+      if (response.statusCode == 200) {
+        final jsonData = json.decode(response.body);
+
+        if (jsonData['success'] == true && jsonData['data'] != null) {
+          return SensorReading.fromJson(jsonData['data']);
+        } else {
+          return null;
+        }
+      } else {
+        throw Exception('Server error: ${response.statusCode}');
+      }
+    } catch (e) {
+      throw Exception('Error fetching latest sensor data: $e');
+    }
+  }
+
+  // ==================== OLD APIs (Backward Compatibility) ====================
 
   static Future<List<Device>> getDevices() async {
     try {
